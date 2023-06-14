@@ -1,6 +1,5 @@
-from .view import PIC16FLoader
-from .arch import PIC16FArchitecture
+from .arch import PIC16Architecture
+from .view import IntelHexView
 
-
-PIC16FLoader.register()
-PIC16FArchitecture.register()
+PIC16Architecture.register()
+IntelHexView.register()

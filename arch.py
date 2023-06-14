@@ -6,8 +6,8 @@ from binaryninja import (
     InstructionInfo
 )
 
-class PIC16FArchitecture(Architecture):
-    name = "pic16f"
+class PIC16Architecture(Architecture):
+    name = "pic16"
     
     
     def __init__(self):
