@@ -11,7 +11,8 @@ class RecordType(Enum):
     StartLinearAddress = 5
 
 class Record():
-    def __init__(self, line: bytes):
+    def __init__(self, line_start: int, line: bytes):
+        self.file_offset = line_start
         self.parse(line)
     
     def parse(self, line: bytes):
@@ -25,5 +26,5 @@ class Record():
         self.record_type = RecordType(int(line[7:9], 16))
 
         end_data = self.byte_count*2
-        self.data = bytes(line[9:9+end_data])
+        self.data = bytes.fromhex(line[9:9+end_data].decode('ascii'))
         self.checksum = line[9+end_data:11+end_data]
