@@ -1,16 +1,18 @@
 from binaryninja import (
     Architecture,
-    Endianess,
     RegisterInfo,
     IntrinsicInfo,
     Type,
     InstructionInfo
 )
 
-class PIC16F(Architecture):
+class PIC16FArchitecture(Architecture):
     name = "pic16f"
     
-    endianess = Endianess.LittleEndian
+    
+    def __init__(self):
+        super().__init__()
+        
     
     
     
