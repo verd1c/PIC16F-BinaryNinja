@@ -55,9 +55,7 @@ class IntelHexView(BinaryView):
             for record in self.records:
                 if record.record_type == RecordType.Data: 
                     addr = base_address + record.address
-                    flag = SegmentFlag.SegmentContainsCode | SegmentFlag.SegmentExecutable | SegmentFlag.SegmentReadable
-                    if base_address > 0:
-                        flag = SegmentFlag.SegmentContainsData | SegmentFlag.SegmentReadable
+                    flag = SegmentFlag.SegmentContainsData
                     self.add_auto_segment(addr, record.byte_count*2, record.file_offset+9, record.byte_count*2, flag)
                 elif record.record_type == RecordType.EndOfFile:
                     break
@@ -66,8 +64,6 @@ class IntelHexView(BinaryView):
                 elif record.record_type == RecordType.StartLinearAddress:
                     self.start_address = int.from_bytes(record.data, byteorder='big')
                     self.add_entry_point(self.start_address)
-            self.add_auto_section("Program memory", 0, 0x1fff)
-            self.add_auto_section("Configuration memory", 0x8000, 0x200)
             return True
         except:
             import traceback
