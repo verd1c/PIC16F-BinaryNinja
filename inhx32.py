@@ -1,5 +1,4 @@
 from enum import Enum
-from binaryninja.log import log_info
 
 class RecordType(Enum):
     Data = 0
@@ -11,8 +10,7 @@ class RecordType(Enum):
     StartLinearAddress = 5
 
 class Record():
-    def __init__(self, line_start: int, line: bytes):
-        self.file_offset = line_start
+    def __init__(self, line: bytes):
         self.parse(line)
     
     def parse(self, line: bytes):
