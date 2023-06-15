@@ -1,0 +1,63 @@
+MNEM	OPERANDS	OPCODE				Status Affected
+
+# BYTE-ORIENTED FILE REGISTER OPERATIONS
+ADDWF	f, d		00 0111 dfff ffff	C, DC, Z
+ADDWFC	f, d		11 1101 dfff ffff	C, DC, Z
+ANDWF	f, d		00 0101 dfff ffff	Z
+ASRF	f, d		11 0111 dfff ffff	C, Z
+LSLF	f, d		11 0101 dfff ffff	C, Z
+LSRF	f, d		11 0110 dfff ffff	C, Z
+CLRF	f			00 0001 lfff ffff	Z
+CLRW	-			00 0001 0000 00xx	Z
+COMF	f, d		00 1001 dfff ffff	Z
+DECF	f, d		00 0011 dfff ffff	Z
+INCF	f, d		00 1010 dfff ffff	Z
+IORWF	f, d		00 0100 dfff ffff	Z
+MOVF	f, d		00 1000 dfff ffff	Z
+MOVWF	f			00 0000 1fff ffff	
+RLF		f, d		00 1101 dfff ffff	C
+RRF		f, d		00 1100 dfff ffff	C
+SUBWF	f, d		00 0010 dfff ffff	C, DC, Z
+SUBWFB	f, d		11 1011 dfff ffff	C, DC, Z
+SWAPF	f, d		00 1110 dfff ffff	
+XORWF	f, d		00 0110 dfff ffff	Z
+# BYTE ORIENTED SKIP OPERATIONS
+DECFSZ	f, d		00 1011 dfff ffff
+INCFSZ	f, d		00 1111 dfff ffff
+# BIT-ORIENTED FILE REGISTER OPERATIONS
+BCF		f, b		01 00bb bfff ffff
+BSF		f, b		01 01bb bfff ffff
+# BIT-ORIENTED SKIP OPERATIONS
+BTFSC	f, b		01 10bb bfff ffff
+BTFSS	f, b		01 11bb bfff ffff
+# LITERAL OPERATIONS
+ADDLW	k			11 1110 kkkk kkkk	C, DC, Z
+ANDLW	k			11 1001 kkkk kkkk	Z
+IORLW	k			11 1000 kkkk kkkk	Z
+MOVLB	k			00 0000 001k kkkk
+MOVLP	k			11 0001 1kkk kkkk
+MOVLW	k			11 0000 kkkk kkkk
+SUBLW	k			11 1100 kkkk kkkk	C, DC, Z
+XORLW	k			11 1010 kkkk kkkk	Z
+# CONTROL OPERATIONS
+BRA		k			11 001k kkkk kkkk
+BRW		-			00 0000 0000 1011
+CALL	k			10 0kkk kkkk kkkk
+CALLW	-			00 0000 0000 1010
+GOTO	k			10 1kkk kkkk kkkk
+RETFIE	k			00 0000 0000 1001
+RETLW	k			11 0100 kkkk kkkk
+RETURN	-			00 0000 0000 1000
+# INHERENT OPERATIONS
+CLRWDT	-			00 0000 0110 0100	nTO, nPD
+NOP		-			00 0000 0000 0000
+OPTION	-			00 0000 0110 0010
+RESET	-			00 0000 0000 0001
+SLEEP	-			00 0000 0110 0011	nTO, nPD
+TRIS	f			00 0000 0110 0fff
+# C-COMPILER OPTIMIZED
+ADDFSR	n, k		11 0001 0nkk kkkk
+MOVIW	n mm		00 0000 0001 0nmm	Z
+MOVIW	k[n]		11 1111 0nkk kkkk	Z
+MOVWI	n mm		00 0000 0001 1nmm
+MOVWI	k[n]		11 1111 1nkk kkkk
