@@ -4,175 +4,157 @@ from binaryninja import (
     InstructionTextTokenType
 )
 
-class Instruction():
-    def __init__(self, data):
-        
-        
-        
-        return
+INSTR_TEXT_PADDING = 8
 
 class PIC16FDisassembler():
     
     def __init__(self):
-        # self.instructions = {
-        #     "111000": ["addwf", self.addwf],
-        #     "1010": ["bsf", self.bsf],
-        # }
         
+        # instruction lookup
         self.instruction_groups = {
             3: [{
-                '100': 'CALL',
-                '101': 'GOTO',
+                0x04: 'CALL',
+                0x05: 'GOTO',
             }, self._disass_call_goto],
             4: [{
-                '0100': 'BCF',
-                '0101': 'BSF',
-                '0110': 'BTFSC',
-                '0111': 'BTFSS',
+                0x04: 'BCF',
+                0x05: 'BSF',
+                0x06: 'BTFSC',
+                0x07: 'BTFSS',
             }, self._disass_bit_filereg_op],
             5: [{
-                '11001': 'BRA',
+                0x19: 'BRA',
             }, self._disass_bra],
             6: [{
-                '000111': 'ADDWF',
-                '111101': 'ADDWFC',
-                '000101': 'ANDWF',
-                '110111': 'ASRF',
-                '110101': 'LSLF',
-                '110110': 'LSRF',
-                '000001': 'CLRF',
-                '001001': 'COMF',
-                '000011': 'DECF',
-                '001010': 'INCF',
-                '000100': 'IORWF',
-                '001000': 'MOVF',
-                '001101': 'RLF',
-                '001100': 'RRF',
-                '000010': 'SUBWF',
-                '111011': 'SUBWFB',
-                '001110': 'SWAPF',
-                '000110': 'XORWF',
-                '001011': 'DECFSZ',
-                '001111': 'INCFSZ',
-                '111110': 'ADDLW',
-                '111001': 'ANDLW',
-                '111000': 'IORLW',
-                '110000': 'MOVLW',
-                '111100': 'SUBLW',
-                '111010': 'XORLW',
-                '110100': 'RETLW',
+                0x07: 'ADDWF',
+                0x3D: 'ADDWFC',
+                0x05: 'ANDWF',
+                0x37: 'ASRF',
+                0x35: 'LSLF',
+                0x36: 'LSRF',
+                0x01: 'CLRF',
+                0x09: 'COMF',
+                0x03: 'DECF',
+                0x0A: 'INCF',
+                0x04: 'IORWF',
+                0x08: 'MOVF',
+                0x0D: 'RLF',
+                0x0C: 'RRF',
+                0x02: 'SUBWF',
+                0x3B: 'SUBWFB',
+                0x0E: 'SWAPF',
+                0x06: 'XORWF',
+                0x0B: 'DECFSZ',
+                0x0F: 'INCFSZ',
+                0x3E: 'ADDLW',
+                0x39: 'ANDLW',
+                0x38: 'IORLW',
+                0x30: 'MOVLW',
+                0x3C: 'SUBLW',
+                0x3A: 'XORLW',
+                0x34: 'RETLW',
             }, self._disass_literal_general_n_byte_filereg_op],
             7: [{
-                '0000001': 'MOVWF',
-                '1100011': 'MOVLP',
-                '1100010': 'ADDFSR',
-                '1111110': 'MOVIWK',
-                '1111111': 'MOVWIK',
+                0x01: 'MOVWF',
+                0x63: 'MOVLP',
+                0x62: 'ADDFSR',
+                0x7E: 'MOVIW',
+                0x7F: 'MOVWI',
             }, self._disass_movlp_n_fsr_offset],
             9: [{
-                '000000001': 'MOVLB',
+                0x01: 'MOVLB',
             }, self._disass_movlb],
             11: [{
-                '00000001100': 'TRIS',
-                '00000000010': 'MOVIW',
-                '00000000011': 'MOVWI',
+                0x0C: 'TRIS',
+                0x02: 'MOVIW',
+                0x03: 'MOVWI',
             }, self._disass_fsr_inc],
+            12: [{
+                0x40: 'CLRW',
+            }, self._disass_clrw],
             14: [{
-                '00000000001011': 'BRW',
-                '00000000001010': 'CALLW',
-                '00000000001001': 'RETFIE',
-                '00000000001000': 'RETURN',
-                '00000001100100': 'CLRWDT',
-                '00000000000000': 'NOP',
-                '00000001100010': 'OPTION',
-                '00000000000001': 'RESET',
-                '00000001100011': 'SLEEP',
+                0x00: 'NOP',
+                0x01: 'RESET',
+                0x08: 'RETURN',
+                0x09: 'RETFIE',
+                0x0A: 'CALLW',
+                0x0B: 'BRW',
+                0x62: 'OPTION',
+                0x63: 'SLEEP',
+                0x64: 'CLRWDT',
             }, self._disass_opcode_only],
             
         }
         
-        ops = {
-            '000001000000': 'CLRW',
-        }
-        
         return
-    
-    # def disassemble(self, data: bytes, addr: int):
-        
-    #     if len(data) < 2:
-    #         return
-        
-    #     instr = data[:2]
-    #     instr_asint = int.from_bytes(instr, 'big')
-    #     instr_bits = bin(instr_asint)[2:].zfill(16)[2:]
-    #     for opcode, instr_data in self.instructions.items():
-    #         op = int(opcode, 2)
-    #         print(f"instr_bits: {instr_bits} instr_asint: {instr_asint}({bin(instr_asint)}) op:{op}({bin(op)}) xor: {bin(instr_asint ^ op)}({bin((2**len(opcode)) - 1)})")
-    #         if (instr_asint ^ op) & ((2**len(opcode)) - 1) == 0:
-    #             print('yes')
-    #             handler = instr_data[1]
-    #             return handler(instr_data[0], instr, addr)
-        
-    #     print('didnt find')
-    #     return
     
     def disassemble(self, data: bytes, addr: int):
         
         if len(data) < 2:
             return
         
-        instr = data[:2]
-        instr_asint = int.from_bytes(instr, 'big')
-        instr_bits = bin(instr_asint)[2:].zfill(16)[2:]
+        instr = int.from_bytes(data[:2], 'big')
         
         for opcode_len, group_data in self.instruction_groups.items():
-            # print(f'Searching len {opcode_len}')
+            
+            if type(group_data) == dict:
+                pass
+            
             instrs = group_data[0]
             handler = group_data[1]
-            masked_instr = int(instr_bits, 2) >> (14 - opcode_len)
+            masked_instr = instr >> (14 - opcode_len)
             
-            # print(masked_instr)
-            # print(instrs.keys())
-            
-            if masked_instr in [int(i, 2) for i in instrs.keys()]:
-                mnemonic = instrs[bin(masked_instr)[2:].zfill(opcode_len)]
-                return handler(mnemonic, instr_bits, addr)
+            if masked_instr in instrs.keys():
+                mnemonic = instrs[masked_instr]
+                return handler(mnemonic, instr, addr)
                 
-            # for opcode, instr_data in instrs.items():
-            #     print(f'\tLen {opcode_len} instr_bits {instr_bits} mask {bin((2**opcode_len - 1))} opcode {opcode} | {int(instr_bits, 2) >> (14 - opcode_len)} == {int(opcode, 2)}')
-            #     if int(instr_bits, 2) & (2**opcode_len - 1) == int(opcode, 2):
-            #         return handler(instr_data[0], instr_bits, addr)
-                    
-        
-        
-        # for opcode, instr_data in self.instructions.items():
-        #     op = int(opcode, 2)
-        #     print(f"instr_bits: {instr_bits} instr_asint: {instr_asint}({bin(instr_asint)}) op:{op}({bin(op)}) xor: {bin(instr_asint ^ op)}({bin((2**len(opcode)) - 1)})")
-        #     if (instr_asint ^ op) & ((2**len(opcode)) - 1) == 0:
-        #         print('yes')
-        #         handler = instr_data[1]
-        #         return handler(instr_data[0], instr, addr)
-        
-        print('didnt find')
+        print(f'Failed parsing instruction {bin(instr)} @ {hex(addr)}')
         return
     
     def _disass_call_goto(self, mnemonic, data, addr):
-        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic + " ")]
+        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic.ljust(INSTR_TEXT_PADDING, " "))]
+        
+        k = data & 0b11111111111
+        tokens.append(InstructionTextToken(InstructionTextTokenType.AddressDisplayToken, hex(k), k))
+        
         return tokens
     
     def _disass_bit_filereg_op(self, mnemonic, data, addr):
-        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic + " ")]
+        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic.ljust(INSTR_TEXT_PADDING, " "))]
         return tokens
     
     def _disass_bra(self, mnemonic, data, addr):
-        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic + " ")]
+        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic.ljust(INSTR_TEXT_PADDING, " "))]
+        return tokens
+    
+    def _disass_literal_general(self, mnemonic, data, addr):
+        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic.ljust(INSTR_TEXT_PADDING, " "))]
+        print('LITERAL GENERAL CALLED')
+        k = data & 0b11111111
+        tokens.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, f"0x{k:02x}", k))
+        
+        # tokens.append(InstructionTextToken(InstructionTextTokenType.CommentToken, "\tComment Test"))
+
+        return tokens
+    
+    def _disass_byte_filereg_op(self, mnemonic, data, addr):
+        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic.ljust(INSTR_TEXT_PADDING, " "))]
+        print('BYTE FILEREG CALLED')
+        k = data & 0b11111111
+        tokens.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, f"0x{k:02x}", k))
+        
+        # tokens.append(InstructionTextToken(InstructionTextTokenType.CommentToken, "\tComment Test"))
+
         return tokens
     
     def _disass_literal_general_n_byte_filereg_op(self, mnemonic, data, addr):
-        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic + " ")]
-        tokens.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, hex(int(data[6:], 2)), int(data[6:], 2)))
-        # print('_disass_literal_general_n_byte_filereg_op CALLED')
-        print(data)
+        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic.ljust(INSTR_TEXT_PADDING, " "))]
+        
+        k = data & 0b11111111
+        tokens.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, f"0x{k:02x}", k))
+        
+        # tokens.append(InstructionTextToken(InstructionTextTokenType.CommentToken, "\tComment Test"))
+
         return tokens
     
     def _disass_movlp_n_fsr_offset(self, mnemonic, data, addr):
@@ -180,14 +162,32 @@ class PIC16FDisassembler():
         return tokens
     
     def _disass_movlb(self, mnemonic, data, addr):
-        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic + " ")]
+        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic.ljust(INSTR_TEXT_PADDING, " "))]
+        
+        bank = data & 0b11111
+        tokens.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, f"0x{bank:02x}", bank))
+        
+        tokens.append(InstructionTextToken(InstructionTextTokenType.CommentToken, f"\tselect bank {bank}"))
+        
         return tokens
     
     def _disass_fsr_inc(self, mnemonic, data, addr):
-        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic + " ")]
+        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic.ljust(INSTR_TEXT_PADDING, " "))]
+        
+        n = int(data[-3], 2)
+        tokens.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, hex(n), n))
+        
+        m = int(data[-2:], 2)
+        tokens.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, hex(m), m))
+        
         return tokens
     
+    # opcode only, just one token
     def _disass_opcode_only(self, mnemonic, data, addr):
-        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic + " ")]
+        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic.ljust(INSTR_TEXT_PADDING, " "))]
+        return tokens
+    
+    def _disass_clrw(self, mnemonic, data, addr):
+        tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic.ljust(INSTR_TEXT_PADDING, " "))]
         return tokens
     
