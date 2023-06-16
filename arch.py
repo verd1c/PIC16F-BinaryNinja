@@ -28,7 +28,6 @@ class PIC16Architecture(Architecture):
         return InstructionInfo(2)
     
     def get_instruction_text(self, data: bytes, addr: int) -> Tuple[List[InstructionTextToken], int] | None:
-        print(data)
         return self.disassembler.disassemble(data, addr), 2
     
     
