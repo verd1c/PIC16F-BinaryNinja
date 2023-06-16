@@ -191,11 +191,3 @@ class PIC16FDisassembler():
         tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic + " ")]
         return tokens
     
-    def addwf(self, mnemonic, data, addr):
-        print('addwf called')
-        
-        return [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic + " ")]
-    
-    def bsf(self, mnemonic, data, addr):
-        print('bsf called')
-        return [InstructionTextToken(InstructionTextTokenType.InstructionToken, mnemonic + " ")]
