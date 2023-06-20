@@ -4,6 +4,11 @@ from binaryninja import (
     InstructionTextTokenType
 )
 
+class BranchInfo:
+    def __init__(self,_type,target=None):
+        self.type = _type
+        self.target = target
+
 class Instruction():
     
     instruction_groups = {
@@ -145,7 +150,7 @@ class ByteFSInstruction(Instruction):
         
         tokens.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, f"0x{self.f:02x}", self.f))
 
-        return tokens
+        return tokens, []
     
     
 class BitFSInstruction(Instruction):
@@ -165,7 +170,7 @@ class BitFSInstruction(Instruction):
         
         tokens.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, f"0x{self.f:02x}  ", self.f))
         
-        return tokens
+        return tokens, []
     
 class GeneralInstruction(Instruction):
     
@@ -181,7 +186,7 @@ class GeneralInstruction(Instruction):
         
         tokens.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, f"0x{self.k:02x}", self.k))
 
-        return tokens
+        return tokens, []
     
 class CallGotoInstruction(Instruction):
     
@@ -195,9 +200,15 @@ class CallGotoInstruction(Instruction):
     def disassemble(self):
         tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, self.name.ljust(self.instr_text_padding, " "))]
         
-        tokens.append(InstructionTextToken(InstructionTextTokenType.AddressDisplayToken, hex(self.k), self.k))
+        tokens.append(InstructionTextToken(InstructionTextTokenType.AddressDisplayToken, hex(self.k * 2), self.k * 2))
         
-        return tokens
+        branches = []
+        if self.name == 'CALL':
+            branches.append(BranchInfo(BranchType.CallDestination, self.k * 2))
+        else:
+            branches.append(BranchInfo(BranchType.UnconditionalBranch, self.k * 2))
+        
+        return tokens, branches
     
 class MovlpInstruction(Instruction):
     
@@ -215,7 +226,7 @@ class MovlpInstruction(Instruction):
         
         tokens.append(InstructionTextToken(InstructionTextTokenType.CommentToken, f"\tPCLATH = 0x{self.imm:02x}"))
         
-        return tokens
+        return tokens, []
     
 class MovlbInstruction(Instruction):
     
@@ -233,20 +244,23 @@ class MovlbInstruction(Instruction):
         
         tokens.append(InstructionTextToken(InstructionTextTokenType.CommentToken, f"\tselect bank {self.bank}"))
         
-        return tokens
+        return tokens, []
     
 class BRAInstruction(Instruction):
     
     def __init__(self, name, data, addr):
         super().__init__(name, data, addr)
         
-   
+        self.k = data & 0b111111111
+
         return     
         
     def disassemble(self):
         tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, self.name.ljust(self.instr_text_padding, " "))]
         
-        return tokens
+        tokens.append(InstructionTextToken(InstructionTextTokenType.AddressDisplayToken, hex(self.addr + self.k * 2), self.addr + self.k * 2))
+        
+        return tokens, [BranchInfo(BranchType.UnconditionalBranch, self.addr + self.k * 2)]
     
 class FSROffsetInstruction(Instruction):
     
@@ -268,7 +282,7 @@ class FSROffsetInstruction(Instruction):
         
         tokens.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, f"0x{self.k:02x}", self.k))
         
-        return tokens
+        return tokens, []
     
 class FSRIncInstruction(Instruction):
     
@@ -287,7 +301,7 @@ class FSRIncInstruction(Instruction):
         
         tokens.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, hex(self.m), self.m))
         
-        return tokens
+        return tokens, []
     
     
 class OPOnlyInstruction(Instruction):
@@ -300,7 +314,11 @@ class OPOnlyInstruction(Instruction):
     def disassemble(self):
         tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, self.name.ljust(self.instr_text_padding, " "))]
         
-        return tokens
+        branches = []
+        if self.name == 'RETURN':
+            branches.append(BranchInfo(BranchType.FunctionReturn, 0))
+        
+        return tokens, branches
     
 class CLRWInstruction(Instruction):
     
@@ -312,5 +330,5 @@ class CLRWInstruction(Instruction):
     def disassemble(self):
         tokens = [InstructionTextToken(InstructionTextTokenType.InstructionToken, self.name.ljust(self.instr_text_padding, " "))]
         
-        return tokens
+        return tokens, []
     

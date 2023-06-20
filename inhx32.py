@@ -18,11 +18,11 @@ class Record():
         start_code_idx = line.find(b':')
         if start_code_idx == -1:
             raise ValueError("Line does not contain valid start code")
-        line = line[start_code_idx:]
-        self.byte_count = int(line[1:3], 16)
-        self.address = int(line[3:7], 16)
-        self.record_type = RecordType(int(line[7:9], 16))
+        line = line[start_code_idx + 1:]
+        self.byte_count = int(line[0:2], 16)
+        self.address = int(line[2:6], 16)
+        self.record_type = RecordType(int(line[6:8], 16))
 
         end_data = self.byte_count*2
-        self.data = bytes.fromhex(line[9:9+end_data].decode('ascii'))
-        self.checksum = line[9+end_data:11+end_data]
+        self.data = bytes.fromhex(line[8:8+end_data].decode('ascii'))
+        self.checksum = line[8+end_data:10+end_data]

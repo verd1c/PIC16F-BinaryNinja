@@ -17,11 +17,14 @@ class IntelHexView(BinaryView):
     
     def __init__(self, data):
         self.raw = data
+
         self.records = self.read_data_records(self.raw)
         # Swaps the order of the most-significant byte and the least-significant byte.
         # In Intel HEX, the LSB comes first and the MSB comes second, but those have to be swapped.
         # In addition to that, the 14 bit instructions are padded to 16 bit.
         self.binary_data = b''.join([pack('>H', z) for r in self.records for z, in iter_unpack('<H', r.data)])
+        print(self.binary_data.hex())
+        print(len(self.binary_data))
         BinaryView.__init__(self, file_metadata=data.file, parent_view=BinaryView.new(data=self.binary_data))
         self.platform = Architecture[PIC16Architecture.name].standalone_platform
 
