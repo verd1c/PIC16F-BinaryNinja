@@ -1,7 +1,9 @@
 from binaryninja import (
     InstructionTextToken,
     BranchType,
-    InstructionTextTokenType
+    InstructionTextTokenType,
+    LowLevelILFunction,
+    LowLevelILLabel
 )
 
 class BranchInfo:
@@ -152,6 +154,10 @@ class ByteFSInstruction(Instruction):
 
         return tokens, []
     
+    def lift(self, il: LowLevelILFunction):
+
+        return
+    
     
 class BitFSInstruction(Instruction):
     
@@ -172,6 +178,10 @@ class BitFSInstruction(Instruction):
         
         return tokens, []
     
+    def lift(self, il: LowLevelILFunction):
+
+        return
+    
 class GeneralInstruction(Instruction):
     
     def __init__(self, name, data, addr):
@@ -187,6 +197,36 @@ class GeneralInstruction(Instruction):
         tokens.append(InstructionTextToken(InstructionTextTokenType.IntegerToken, f"0x{self.k:02x}", self.k))
 
         return tokens, []
+    
+    def lift(self, il: LowLevelILFunction):
+        
+        wreg = il.reg(1, "W")
+        kconst = il.const(1, self.k)
+        
+        match self.name:
+            case "ADDLW":
+                il.append(il.set_reg(1, "W", il.add(1, wreg, kconst)))
+                
+            case "ANDLW":
+                il.append(il.set_reg(1, "W", il.and_expr(1, wreg, kconst)))
+                
+            case "IORLW":
+                il.append(il.set_reg(1, "W", il.or_expr(1, wreg, kconst)))
+                
+            case "XORLW":
+                il.append(il.set_reg(1, "W", il.xor_expr(1, wreg, kconst)))
+                
+            case "SUBLW":
+                il.append(il.set_reg(1, "W", il.sub(1, wreg, kconst)))
+            
+            case "MOVLW":
+                il.append(il.set_reg(1, "W", kconst))
+                
+            case "RETLW":
+                il.append(il.set_reg(1, "W", kconst))
+                il.append(il.ret(0))
+
+        return
     
 class CallGotoInstruction(Instruction):
     
@@ -210,6 +250,17 @@ class CallGotoInstruction(Instruction):
         
         return tokens, branches
     
+    def lift(self, il: LowLevelILFunction):
+        
+        target = il.const_pointer(2, self.k * 2)
+
+        if self.name == 'CALL':
+            il.append(il.call(target))
+        else:
+            il.append(il.jump(target))
+        
+        return
+    
 class MovlpInstruction(Instruction):
     
     def __init__(self, name, data, addr):
@@ -227,6 +278,12 @@ class MovlpInstruction(Instruction):
         tokens.append(InstructionTextToken(InstructionTextTokenType.CommentToken, f"\tPCLATH = 0x{self.imm:02x}"))
         
         return tokens, []
+    
+    def lift(self, il: LowLevelILFunction):
+        
+        il.append(il.set_reg(1, "PCLATH", il.const(1, self.imm)))
+
+        return
     
 class MovlbInstruction(Instruction):
     
@@ -246,6 +303,12 @@ class MovlbInstruction(Instruction):
         
         return tokens, []
     
+    def lift(self, il: LowLevelILFunction):
+
+        il.append(il.set_reg(1, "BSR", il.const(1, self.bank)))
+
+        return
+    
 class BRAInstruction(Instruction):
     
     def __init__(self, name, data, addr):
@@ -261,6 +324,13 @@ class BRAInstruction(Instruction):
         tokens.append(InstructionTextToken(InstructionTextTokenType.AddressDisplayToken, hex(self.addr + self.k * 2), self.addr + self.k * 2))
         
         return tokens, [BranchInfo(BranchType.UnconditionalBranch, self.addr + self.k * 2)]
+    
+    def lift(self, il: LowLevelILFunction):
+        
+        target = il.const_pointer(2, self.addr + self.k * 2)
+        il.append(il.jump(target))
+
+        return
     
 class FSROffsetInstruction(Instruction):
     
@@ -284,6 +354,15 @@ class FSROffsetInstruction(Instruction):
         
         return tokens, []
     
+    def lift(self, il: LowLevelILFunction):
+
+        match self.name:
+            
+            case "MOVWF":
+                il.append(il.set_reg(1, f'F{self.k}', il.reg(1, "W")))
+
+        return
+    
 class FSRIncInstruction(Instruction):
     
     def __init__(self, name, data, addr):
@@ -303,6 +382,10 @@ class FSRIncInstruction(Instruction):
         
         return tokens, []
     
+    def lift(self, il: LowLevelILFunction):
+
+        return
+    
     
 class OPOnlyInstruction(Instruction):
     
@@ -320,6 +403,18 @@ class OPOnlyInstruction(Instruction):
         
         return tokens, branches
     
+    def lift(self, il: LowLevelILFunction):
+
+        # TODO: fix RETURN return address
+        match self.name:
+            case "NOP":
+                il.append(il.nop())
+                
+            case "RETURN":
+                il.append(il.ret(il.const(2, 0)))
+
+        return
+    
 class CLRWInstruction(Instruction):
     
     def __init__(self, name, data, addr):
@@ -332,3 +427,8 @@ class CLRWInstruction(Instruction):
         
         return tokens, []
     
+    def lift(self, il: LowLevelILFunction):
+
+        il.append(il.set_reg(1, "W", il.const(1, 0)))
+
+        return
