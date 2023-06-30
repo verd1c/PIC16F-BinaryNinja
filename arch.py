@@ -60,7 +60,5 @@ class PIC16Architecture(Architecture):
     
     def get_instruction_low_level_il(self, data: bytes, addr: int, il: LowLevelILFunction) -> int | None:
         
-        self.lifter.lift(data, addr, il)
-        
-        return 2
+        return self.lifter.lift(data, addr, il)
     

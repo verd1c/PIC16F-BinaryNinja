@@ -21,5 +21,14 @@ class PIC16FLifter():
                 
                 # this should be aggregated
                 print(f"call_far @ {hex(addr)}")
-                        
-        return Instruction.new(data, addr).lift(il)
+                
+        if len(data) >= 6:
+            cnd = Instruction.new(data[0:2], addr)
+            if (cnd.name == "BTFSS" or cnd.name == "BTFSC"):
+                
+                # this should be aggregated
+                print(f"conditional jump @ {hex(addr)}")
+                # return Instruction.lift_conditional_jump(data[:6], addr, il)
+                
+        
+        return Instruction.new(data, addr).lift(data, il)

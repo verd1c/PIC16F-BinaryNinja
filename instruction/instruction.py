@@ -131,6 +131,30 @@ class Instruction():
         print(f'Failed parsing instruction {bin(instr)} @ {hex(addr)}')
         return
     
+    @classmethod
+    def lift_conditional_jump(self, data, addr, il: LowLevelILFunction):
+        print(f'Boutta Lift cond jump @ {hex(addr)}')
+        
+        condition_ins = Instruction.new(data[0:2], addr)
+        skip_if_ins = Instruction.new(data[2:4], addr + 2)
+        skip_if_not_ins = Instruction.new(data[4:6], addr + 4)
+        
+        t = LowLevelILLabel()
+        f = LowLevelILLabel()
+        
+        # TODO: fix
+        il.append(il.if_expr(il.compare_equal(1, il.const_pointer(1, condition_ins.f), il.const(1, 0)), t, f))
+        
+        il.mark_label(t)
+        il.append(il.jump(il.const(1, 10)))
+        # skip_if_ins.lift(il)
+        il.mark_label(f)
+        il.append(il.jump(il.const(1, 10)))
+        # skip_if_not_ins.lift(il)
+        
+        return 6
+        
+        
     
 class ByteFSInstruction(Instruction):
     
@@ -154,7 +178,43 @@ class ByteFSInstruction(Instruction):
 
         return tokens, []
     
-    def lift(self, il: LowLevelILFunction):
+    def lift(self, data: bytes, il: LowLevelILFunction):
+        
+        # 0x01: 'CLRF',
+        # 0x07: 'ADDWF',
+        # 0x3D: 'ADDWFC',
+        # 0x05: 'ANDWF',
+        # 0x37: 'ASRF',
+        # 0x35: 'LSLF',
+        # 0x36: 'LSRF',
+        # 0x09: 'COMF',
+        # 0x03: 'DECF',
+        # 0x0A: 'INCF',
+        # 0x04: 'IORWF',
+        # 0x08: 'MOVF',
+        # 0x0D: 'RLF',
+        # 0x0C: 'RRF',
+        # 0x02: 'SUBWF',
+        # 0x3B: 'SUBWFB',
+        # 0x0E: 'SWAPF',
+        # 0x06: 'XORWF',
+        # 0x0B: 'DECFSZ',
+        # 0x0F: 'INCFSZ',
+        
+        match self.name:
+            case 'CLRF':
+                if self.d == 0:
+                    # W
+                    il.append(il.set_reg(1, "W", il.const(1, 0)))
+                else:
+                    # f
+                    il.append(il.store(1, il.const_pointer(2, self.f), il.const_pointer(1, 0)))
+                    
+            case 'MOVF':
+                il.append(il.set_reg(1, "W", il.load(1, il.const_pointer(1, self.f))))
+                    
+            case _:
+                il.append(il.unimplemented())
 
         return
     
@@ -178,9 +238,32 @@ class BitFSInstruction(Instruction):
         
         return tokens, []
     
-    def lift(self, il: LowLevelILFunction):
+    def lift(self, data: bytes, il: LowLevelILFunction):
 
-        return
+
+        match self.name:
+            case 'BTFSS':
+                t = LowLevelILLabel()
+                f = LowLevelILLabel()
+                
+                print(f'{self.addr} -> {data}')
+                # TODO: fix
+                il.append(il.if_expr(il.compare_equal(1, il.const_pointer(1, 10), il.const(1, 0)), t, f))
+                
+                if_ins = Instruction.new(data[2:4], self.addr + 2)
+                il.append(il.jump(il.const(1, if_ins.k)))
+                il.mark_label(t)
+                
+                if_not_ins = Instruction.new(data[4:6], self.addr + 4)
+                il.append(il.jump(il.const(1, if_not_ins.k)))
+                il.mark_label(f)
+                
+                return 6
+            
+            case _:
+                il.append(il.unimplemented())        
+        
+        return 2
     
 class GeneralInstruction(Instruction):
     
@@ -198,7 +281,7 @@ class GeneralInstruction(Instruction):
 
         return tokens, []
     
-    def lift(self, il: LowLevelILFunction):
+    def lift(self, data: bytes, il: LowLevelILFunction):
         
         wreg = il.reg(1, "W")
         kconst = il.const(1, self.k)
@@ -225,8 +308,11 @@ class GeneralInstruction(Instruction):
             case "RETLW":
                 il.append(il.set_reg(1, "W", kconst))
                 il.append(il.ret(0))
+                
+            case _:
+                il.append(il.unimplemented())
 
-        return
+        return 2
     
 class CallGotoInstruction(Instruction):
     
@@ -250,7 +336,7 @@ class CallGotoInstruction(Instruction):
         
         return tokens, branches
     
-    def lift(self, il: LowLevelILFunction):
+    def lift(self, data: bytes, il: LowLevelILFunction):
         
         target = il.const_pointer(2, self.k * 2)
 
@@ -259,7 +345,7 @@ class CallGotoInstruction(Instruction):
         else:
             il.append(il.jump(target))
         
-        return
+        return 2
     
 class MovlpInstruction(Instruction):
     
@@ -279,11 +365,11 @@ class MovlpInstruction(Instruction):
         
         return tokens, []
     
-    def lift(self, il: LowLevelILFunction):
+    def lift(self, data: bytes, il: LowLevelILFunction):
         
         il.append(il.set_reg(1, "PCLATH", il.const(1, self.imm)))
 
-        return
+        return 2
     
 class MovlbInstruction(Instruction):
     
@@ -303,11 +389,11 @@ class MovlbInstruction(Instruction):
         
         return tokens, []
     
-    def lift(self, il: LowLevelILFunction):
+    def lift(self, data: bytes, il: LowLevelILFunction):
 
         il.append(il.set_reg(1, "BSR", il.const(1, self.bank)))
 
-        return
+        return 2
     
 class BRAInstruction(Instruction):
     
@@ -325,12 +411,12 @@ class BRAInstruction(Instruction):
         
         return tokens, [BranchInfo(BranchType.UnconditionalBranch, self.addr + self.k * 2)]
     
-    def lift(self, il: LowLevelILFunction):
+    def lift(self, data: bytes, il: LowLevelILFunction):
         
         target = il.const_pointer(2, self.addr + self.k * 2)
         il.append(il.jump(target))
 
-        return
+        return 2
     
 class FSROffsetInstruction(Instruction):
     
@@ -354,14 +440,31 @@ class FSROffsetInstruction(Instruction):
         
         return tokens, []
     
-    def lift(self, il: LowLevelILFunction):
+    def lift(self, data: bytes, il: LowLevelILFunction):
 
+
+        # 0x01: 'MOVWF',
+        # 0x62: 'ADDFSR',
+        # 0x7E: 'MOVIW',
+        # 0x7F: 'MOVWI',
         match self.name:
             
             case "MOVWF":
                 il.append(il.set_reg(1, f'F{self.k}', il.reg(1, "W")))
+                
+            case "ADDFSR":
+                il.append(il.set_reg(1, f'FSR{self.n}', il.add_carry(il.reg(1, f'FSR{self.n}'), il.const(1, self.k))))
+                
+            case "MOVIW":
+                il.append(il.set_reg(1, f'FSR{self.k}', il.reg(1, "W")))
+                
+            case "MOVWI":
+                il.append(il.set_reg(1, f'W', il.reg(1, f'FSR{self.k}')))
+                
+            case _:
+                il.append(il.unimplemented())
 
-        return
+        return 2
     
 class FSRIncInstruction(Instruction):
     
@@ -382,9 +485,11 @@ class FSRIncInstruction(Instruction):
         
         return tokens, []
     
-    def lift(self, il: LowLevelILFunction):
+    def lift(self, data: bytes, il: LowLevelILFunction):
+        
+        il.append(il.unimplemented())
 
-        return
+        return 2
     
     
 class OPOnlyInstruction(Instruction):
@@ -403,7 +508,7 @@ class OPOnlyInstruction(Instruction):
         
         return tokens, branches
     
-    def lift(self, il: LowLevelILFunction):
+    def lift(self, data: bytes, il: LowLevelILFunction):
 
         # TODO: fix RETURN return address
         match self.name:
@@ -412,8 +517,11 @@ class OPOnlyInstruction(Instruction):
                 
             case "RETURN":
                 il.append(il.ret(il.const(2, 0)))
+                
+            case _:
+                il.append(il.unimplemented())
 
-        return
+        return 2
     
 class CLRWInstruction(Instruction):
     
@@ -427,8 +535,8 @@ class CLRWInstruction(Instruction):
         
         return tokens, []
     
-    def lift(self, il: LowLevelILFunction):
+    def lift(self, data: bytes, il: LowLevelILFunction):
 
         il.append(il.set_reg(1, "W", il.const(1, 0)))
 
-        return
+        return 2
