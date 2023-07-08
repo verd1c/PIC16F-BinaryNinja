@@ -28,7 +28,7 @@ class PIC16FLifter():
                 
                 # this should be aggregated
                 print(f"conditional jump @ {hex(addr)}")
-                # return Instruction.lift_conditional_jump(data[:6], addr, il)
+                return Instruction.lift_conditional_jump(data[:6], addr, il)
                 
         
         return Instruction.new(data, addr).lift(data, il)

@@ -132,6 +132,23 @@ class Instruction():
         return
     
     @classmethod
+    def disassemble_conditional_jump(self, data, addr):
+        
+        condition_ins = Instruction.new(data[0:2], addr)
+        
+        tokens = []
+        match condition_ins.name:
+            case 'BTFSS':
+        
+                InstructionTextToken(InstructionTextTokenType.InstructionToken, "JEQ".ljust(8, " "))
+                
+            case 'BTFSC':
+                
+                InstructionTextToken(InstructionTextTokenType.InstructionToken, "JNEQ".ljust(8, " "))
+
+        return tokens, []
+    
+    @classmethod
     def lift_conditional_jump(self, data, addr, il: LowLevelILFunction):
         print(f'Boutta Lift cond jump @ {hex(addr)}')
         
@@ -142,15 +159,25 @@ class Instruction():
         t = LowLevelILLabel()
         f = LowLevelILLabel()
         
-        # TODO: fix
-        il.append(il.if_expr(il.compare_equal(1, il.const_pointer(1, condition_ins.f), il.const(1, 0)), t, f))
+        match condition_ins.name:
+            case 'BTFSS':
         
-        il.mark_label(t)
-        il.append(il.jump(il.const(1, 10)))
-        # skip_if_ins.lift(il)
-        il.mark_label(f)
-        il.append(il.jump(il.const(1, 10)))
-        # skip_if_not_ins.lift(il)
+                il.append(il.if_expr(il.compare_equal(1, il.load(1, il.const_pointer(1, condition_ins.f)), il.const(1, 0)), t, f))
+        
+                il.mark_label(t)
+                skip_if_ins.lift(data[2:4], il)
+                il.mark_label(f)
+                skip_if_not_ins.lift(data[4:6], il)
+                
+            case 'BTFSC':
+                
+                il.append(il.if_expr(il.compare_not_equal(1, il.load(1, il.const_pointer(1, condition_ins.f)), il.const(1, 0)), t, f))
+        
+                il.mark_label(t)
+                skip_if_ins.lift(data[2:4], il)
+                il.mark_label(f)
+                skip_if_not_ins.lift(data[4:6], il)
+        
         
         return 6
         
@@ -208,7 +235,7 @@ class ByteFSInstruction(Instruction):
                     il.append(il.set_reg(1, "W", il.const(1, 0)))
                 else:
                     # f
-                    il.append(il.store(1, il.const_pointer(2, self.f), il.const_pointer(1, 0)))
+                    il.append(il.store(1, il.const_pointer(2, self.f), il.const(1, 0)))
                     
             case 'MOVF':
                 il.append(il.set_reg(1, "W", il.load(1, il.const_pointer(1, self.f))))
@@ -242,24 +269,6 @@ class BitFSInstruction(Instruction):
 
 
         match self.name:
-            case 'BTFSS':
-                t = LowLevelILLabel()
-                f = LowLevelILLabel()
-                
-                print(f'{self.addr} -> {data}')
-                # TODO: fix
-                il.append(il.if_expr(il.compare_equal(1, il.const_pointer(1, 10), il.const(1, 0)), t, f))
-                
-                if_ins = Instruction.new(data[2:4], self.addr + 2)
-                il.append(il.jump(il.const(1, if_ins.k)))
-                il.mark_label(t)
-                
-                if_not_ins = Instruction.new(data[4:6], self.addr + 4)
-                il.append(il.jump(il.const(1, if_not_ins.k)))
-                il.mark_label(f)
-                
-                return 6
-            
             case _:
                 il.append(il.unimplemented())        
         
@@ -450,6 +459,7 @@ class FSROffsetInstruction(Instruction):
         match self.name:
             
             case "MOVWF":
+                print(f'movwf @ {hex(self.addr)}')
                 il.append(il.set_reg(1, f'F{self.k}', il.reg(1, "W")))
                 
             case "ADDFSR":
