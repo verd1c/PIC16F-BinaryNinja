@@ -8,6 +8,7 @@ from binaryninja import (
     Type,
     InstructionInfo,
     function,
+    FlagRole,
     lowlevelil
 )
 from binaryninja.architecture import InstructionInfo
@@ -27,6 +28,11 @@ class PIC16Architecture(Architecture):
     regs['BSR'] = RegisterInfo('BSR', 1)
     regs['W'] = RegisterInfo('W', 1)
     regs['SP'] = RegisterInfo('SP', 1)
+    
+    flags = ['c']
+    flag_roles = { 'c': FlagRole.CarryFlagRole }
+    flag_write_types = ['none', 'only_carry']
+    flags_written_by_flag_write_type = { 'none': [], 'only_carry': ['c'], }
     
     # file regs
     for i in range(0x80):

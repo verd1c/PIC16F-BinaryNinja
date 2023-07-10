@@ -240,6 +240,18 @@ class ByteFSInstruction(Instruction):
             case 'MOVF':
                 il.append(il.set_reg(1, "W", il.load(1, il.const_pointer(1, self.f))))
                     
+            case 'ADDWF':
+                il.append(il.store(1, il.const_pointer(1, self.f), il.add(1, il.load(1, self.f), il.reg(1, "W"))))
+                # il.append(il.set_reg(1, "W", il.add(1, il.reg(1, "W"), il.load(1, il.const(1, self.f)))))
+                
+            case 'ADDWFC':
+                il.append(il.store(1, il.const_pointer(1, self.f), il.add_carry(1, il.load(1, self.f), il.reg(1, "W"), il.flag("c"))))
+                # il.append(il.set_reg(1, "W", il.add_carry(1, il.reg(1, "W"), il.load(1, il.const(1, self.f)), il.flag("c"))))
+                   
+            case 'SUBWF':
+                il.append(il.store(1, il.const_pointer(1, self.f), il.sub(1, il.load(1, self.f), il.reg(1, "W"))))
+                # il.append(il.set_reg(1, "W", il.sub(1, il.reg(1, "W"), il.load(1, il.const(1, self.f)))))
+                    
             case _:
                 il.append(il.unimplemented())
 
@@ -269,6 +281,16 @@ class BitFSInstruction(Instruction):
 
 
         match self.name:
+            case 'BCF':
+                freg = il.reg(1, f"F{self.f}")
+                freg_clear = il.and_expr(1, freg, il.not_expr(1, il.const(1, self.b)))
+                il.append(il.set_reg(1, f"F{self.f}", freg_clear))
+                
+            case 'BSF':
+                freg = il.reg(1, f"F{self.f}")
+                freg_clear = il.or_expr(1, freg, il.not_expr(1, il.const(1, self.b)))
+                il.append(il.set_reg(1, f"F{self.f}", freg_clear))
+                
             case _:
                 il.append(il.unimplemented())        
         
@@ -460,6 +482,7 @@ class FSROffsetInstruction(Instruction):
             
             case "MOVWF":
                 print(f'movwf @ {hex(self.addr)}')
+                il.append(il.store(1, il.const_pointer(1, self.k + (self.n << 6)), il.reg(1, "W")))
                 il.append(il.set_reg(1, f'F{self.k}', il.reg(1, "W")))
                 
             case "ADDFSR":
